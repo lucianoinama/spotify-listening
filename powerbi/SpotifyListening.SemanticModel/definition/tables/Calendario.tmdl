@@ -1,0 +1,89 @@
+/// One row per day from the first play to today, including days without plays.
+table Calendario
+	dataCategory: Time
+	lineageTag: 97638a0e-6bb9-564f-8833-161a23b1de2e
+
+	/// Calendar day.
+	column Fecha
+		dataType: dateTime
+		isKey
+		formatString: dd/mm/yyyy
+		lineageTag: afa24d04-5963-5dc0-8ee4-49963bc502e8
+		summarizeBy: none
+		sourceColumn: date_day
+
+	/// Calendar year.
+	column 'Año'
+		dataType: int64
+		formatString: 0
+		lineageTag: 87e85e30-7c7d-5f08-84da-78fe3edca7f5
+		summarizeBy: none
+		sourceColumn: year
+
+	/// Month number, 1 to 12.
+	column 'Mes número'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: beb0c9ef-be41-5895-95b9-cb898da7f897
+		summarizeBy: none
+		sourceColumn: month
+
+	/// First day of the month.
+	column 'Inicio de mes'
+		dataType: dateTime
+		isHidden
+		formatString: mmm yyyy
+		lineageTag: 7b95def0-0680-5ec9-96f8-dfe5fd5ba86d
+		summarizeBy: none
+		sourceColumn: month_start
+
+	/// ISO weekday, 1 is Monday and 7 is Sunday.
+	column 'Día número'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 7a4d5af5-6855-5b91-ae1e-eef0656144ff
+		summarizeBy: none
+		sourceColumn: iso_day_of_week
+
+	/// True for Saturday and Sunday.
+	column 'Es fin de semana'
+		dataType: boolean
+		isHidden
+		lineageTag: c34803fb-a84a-5a7e-ae7a-be81f7882db1
+		summarizeBy: none
+		sourceColumn: is_weekend
+
+	/// Month name in Spanish.
+	column Mes = SWITCH(Calendario[Mes número], 1, "Enero", 2, "Febrero", 3, "Marzo", 4, "Abril", 5, "Mayo", 6, "Junio", 7, "Julio", 8, "Agosto", 9, "Septiembre", 10, "Octubre", 11, "Noviembre", 12, "Diciembre", "Sin dato")
+		dataType: string
+		lineageTag: b7cb252a-59ed-5552-99d6-8cc984cc9558
+		sortByColumn: 'Mes número'
+		summarizeBy: none
+
+	/// Weekday name in Spanish, Monday first.
+	column 'Día de la semana' = SWITCH(Calendario[Día número], 1, "Lunes", 2, "Martes", 3, "Miércoles", 4, "Jueves", 5, "Viernes", 6, "Sábado", 7, "Domingo", "Sin dato")
+		dataType: string
+		lineageTag: e2387c9b-2592-565b-9302-a4dc2582b082
+		sortByColumn: 'Día número'
+		summarizeBy: none
+
+	/// Weekend or weekday.
+	column 'Tipo de día' = IF(Calendario[Es fin de semana], "Fin de semana", "Semana")
+		dataType: string
+		lineageTag: 3266b3ab-1cb5-5b30-8eed-4206fb6a01af
+		summarizeBy: none
+
+	partition Calendario = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="dim_date"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"date_day", "year", "month", "month_start", "iso_day_of_week", "is_weekend"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"date_day", type date}, {"year", Int64.Type}, {"month", Int64.Type}, {"month_start", type date}, {"iso_day_of_week", Int64.Type}, {"is_weekend", type logical}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,208 @@
+/// Business measures.
+table _Measures
+	lineageTag: aec5a591-999b-5258-b4cc-a0c3ba7899a6
+
+	/// Number of plays in the current filter.
+	measure 'Total de reproducciones' = COUNTROWS(Reproducciones)
+		formatString: #,0
+		lineageTag: 34944a78-312f-5368-b8cb-cb72a4199822
+
+	/// Hours listened: real time played for plays up to the end of the extended history, an estimate (track length) for later ones.
+	measure 'Horas escuchadas' = DIVIDE(SUM(Reproducciones[Tiempo escuchado en ms]), 3600000)
+		formatString: #,0.0
+		lineageTag: 887157e5-dc96-5d71-8773-149ac84725c4
+
+	/// Distinct tracks played.
+	measure 'Canciones únicas' = DISTINCTCOUNT(Reproducciones[ID canción])
+		formatString: #,0
+		lineageTag: 99102baa-16ce-5f48-90dd-ccfc46ad01ff
+
+	/// Distinct days with at least one play.
+	measure 'Días con actividad' = DISTINCTCOUNT(Reproducciones[Fecha])
+		formatString: #,0
+		lineageTag: 1808d7bf-84cc-5a10-8409-4fd1418920fa
+
+	/// Estimated hours divided by days with at least one play.
+	measure 'Horas por día activo' = DIVIDE([Horas escuchadas], [Días con actividad])
+		formatString: #,0.0
+		lineageTag: 5d71ce22-fe51-52fd-9698-a46065fa9bf5
+
+	/// Estimated hours with zero instead of blank, so days without plays show as zero.
+	measure 'Horas por día' = [Horas escuchadas] + 0
+		formatString: #,0.0
+		lineageTag: 351a5447-ff31-524d-9264-8d254b2d9ad6
+
+	/// Hour of the day with the most plays. Ties are listed together.
+	measure 'Hora pico' = CONCATENATEX(TOPN(1, VALUES(Reproducciones[Hora]), [Total de reproducciones], DESC), Reproducciones[Hora], ", ", Reproducciones[Hora], ASC)
+		lineageTag: 6690c06f-2abc-54e9-9bdb-c333b40ee1ad
+
+	/// Weekday with the most estimated hours. Ties are listed together.
+	measure 'Día más activo' = CONCATENATEX(TOPN(1, VALUES(Calendario[Día de la semana]), [Horas escuchadas], DESC), Calendario[Día de la semana], ", ")
+		lineageTag: 5c89885d-c671-5aeb-b42d-b7695e10b4d6
+
+	/// Cell color of the heatmap: five blue steps by share of the busiest cell.
+	measure 'Color mapa de calor' =
+			VAR _v = [Horas escuchadas]
+			VAR _max = MAXX(CROSSJOIN(ALLSELECTED(Calendario[Día de la semana]), ALLSELECTED(Reproducciones[Hora])), [Horas escuchadas])
+			VAR _r = DIVIDE(_v, _max)
+			RETURN IF(ISBLANK(_v), "#F3F4F6", SWITCH(TRUE(), _r >= 0.8, "#1E5FA8", _r >= 0.6, "#2A78D6", _r >= 0.4, "#6FA3E3", _r >= 0.2, "#A9C8F0", "#D6E6F8"))
+		lineageTag: c93fb6fd-2552-5131-87b7-5be1a354aede
+
+	/// Text color of the heatmap: white on the two darkest cells, dark otherwise.
+	measure 'Color texto mapa de calor' = IF([Color mapa de calor] IN {"#1E5FA8", "#2A78D6"}, "#FFFFFF", "#111827")
+		lineageTag: 22845b17-5f49-5ced-9aee-25a4da4cf302
+
+	/// Estimated hours per artist from the monthly ranking, for the selected months.
+	measure 'Horas por artista' = SUM('Ranking Artistas'[Horas del mes])
+		formatString: #,0.0
+		lineageTag: 07ce4c90-14d8-53fa-9f5c-49c4e7d82d1a
+
+	/// Hours per artist, blank outside the top 10. Ties can add an artist.
+	measure 'Horas por artista (Top 10)' =
+			VAR _rank = RANKX(ALLSELECTED('Ranking Artistas'[Artista]), [Horas por artista], , DESC)
+			RETURN IF(_rank <= 10, [Horas por artista])
+		formatString: #,0.0
+		lineageTag: a69c0579-54d6-5844-8a4f-f2527b08e3af
+
+	/// Estimated hours per genre from the monthly ranking, for the selected months.
+	measure 'Horas por género' = SUM('Ranking Géneros'[Horas del mes])
+		formatString: #,0.0
+		lineageTag: 3048fe41-634f-54e9-8079-6cc3df002fb6
+
+	/// Hours per genre, blank outside the top 8. Ties can add a genre.
+	measure 'Horas por género (Top 8)' =
+			VAR _rank = RANKX(ALLSELECTED('Ranking Géneros'[Género]), [Horas por género], , DESC)
+			RETURN IF(_rank <= 8, [Horas por género])
+		formatString: #,0.0
+		lineageTag: 72063517-3db6-5f2a-acb9-0226b85f00be
+
+	/// Distinct artists in the current filter.
+	measure 'Cantidad de artistas' = DISTINCTCOUNT(Artistas[ID artista])
+		formatString: #,0
+		lineageTag: ed821ea1-f2a6-5a56-8deb-b7b2a8a8310a
+
+	/// Artists per main genre, blank outside the top 8.
+	measure 'Artistas por género (Top 8)' =
+			VAR _rank = RANKX(ALLSELECTED(Artistas[Género principal]), [Cantidad de artistas], , DESC)
+			RETURN IF(_rank <= 8, [Cantidad de artistas])
+		formatString: #,0
+		lineageTag: 2827ea42-5750-5872-9e20-48aa83b15b88
+
+	/// Day of the most recent play in the whole model. Ends the 30 day window.
+	measure 'Fin de datos' = CALCULATE(MAX(Reproducciones[Fecha]), ALL(Reproducciones))
+		formatString: dd/mm/yyyy
+		lineageTag: 0fd4d41b-75e2-55ca-a11c-6150a5470e0a
+
+	/// Plays in the 30 days up to the last recorded play. Ignores the date slicer.
+	measure 'Reproducciones 30 días' =
+			VAR _end = [Fin de datos]
+			VAR _start = _end - 29
+			RETURN CALCULATE([Total de reproducciones], REMOVEFILTERS(Calendario), Calendario[Fecha] >= _start, Calendario[Fecha] <= _end)
+		formatString: #,0
+		lineageTag: 0849ecae-63ea-51ef-89e7-5801f7d51249
+
+	/// Album score (plays plus a tiny recency term) over the 30 day window.
+	measure 'Puntaje de álbum 30 días' =
+			VAR _end = [Fin de datos]
+			VAR _start = _end - 29
+			RETURN CALCULATE([Puntaje de álbum], REMOVEFILTERS(Calendario), Calendario[Fecha] >= _start, Calendario[Fecha] <= _end)
+		formatString: 0.000000
+		lineageTag: 3a20cff7-531b-54cf-978f-a4e4f28239b3
+
+	/// Cover URL of the most played album in the 30 days up to the last recorded play.
+	measure 'Portada álbum top 30 días' =
+			VAR _t = ADDCOLUMNS(ALL(Canciones[Portada]), "Score", [Puntaje de álbum 30 días])
+			VAR _top = TOPN(1, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			RETURN MAXX(_top, Canciones[Portada])
+		dataCategory: ImageUrl
+		lineageTag: 0be5fa99-cf24-5c0c-9d33-719b2c9f7e41
+
+	/// Plays plus a tiny term from the last play time, so albums with equal plays rank by recency and the ranking has no ties.
+	measure 'Puntaje de álbum' = [Total de reproducciones] + DIVIDE(CALCULATE(MAX(Reproducciones[Fecha y hora])), 1000000)
+		formatString: 0.000000
+		lineageTag: 9adf4bd6-211a-5932-999e-89a99e964f23
+
+	/// Cover URL of the album ranked 1 by plays in the current date filter.
+	measure 'Portada #1' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(1, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 1, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: f2adf15d-c0a6-5858-ba77-9b463c1625c2
+
+	/// Cover URL of the album ranked 2 by plays in the current date filter.
+	measure 'Portada #2' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(2, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 2, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: 34fa8bf0-4055-5a1e-a16e-09f7b06eb2db
+
+	/// Cover URL of the album ranked 3 by plays in the current date filter.
+	measure 'Portada #3' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(3, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 3, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: 6f4f8813-d011-5d85-b833-4c746c0086d3
+
+	/// Cover URL of the album ranked 4 by plays in the current date filter.
+	measure 'Portada #4' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(4, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 4, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: 2ccf08d2-6afc-54b5-844f-5a572b1a1e73
+
+	/// Cover URL of the album ranked 5 by plays in the current date filter.
+	measure 'Portada #5' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(5, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 5, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: 31d3edd1-37ad-5755-a128-6016ef644c31
+
+	/// Cover URL of the album ranked 6 by plays in the current date filter.
+	measure 'Portada #6' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(6, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 6, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: 750f6785-bfdd-5bd9-967a-3c08fc2cb745
+
+	/// Cover URL of the album ranked 7 by plays in the current date filter.
+	measure 'Portada #7' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(7, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 7, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: ca5dacdd-94ca-58ef-b78d-be67d7b74635
+
+	/// Cover URL of the album ranked 8 by plays in the current date filter.
+	measure 'Portada #8' =
+			VAR _t = ADDCOLUMNS(ALLSELECTED(Canciones[Portada]), "Score", [Puntaje de álbum])
+			VAR _top = TOPN(8, FILTER(_t, NOT ISBLANK([Score])), [Score], DESC)
+			VAR _min = MINX(_top, [Score])
+			RETURN IF(COUNTROWS(_top) >= 8, MAXX(FILTER(_top, [Score] = _min), Canciones[Portada]))
+		dataCategory: ImageUrl
+		lineageTag: ed518375-1f6b-52e4-8c5e-e047fb29239d
+
+	column Value
+		isHidden
+		formatString: 0
+		lineageTag: de3e7085-ef7b-55fc-a4d4-ba36332810d2
+		summarizeBy: sum
+		sourceColumn: [Value]
+
+	partition _Measures = calculated
+		mode: import
+		source = {BLANK()}
+
+	annotation PBI_Id = b22c40e1-b836-5c45-89d2-1eb76b90ee10

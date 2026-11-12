@@ -1,0 +1,18 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720' viewBox='0 0 1280 720'>
+<rect width='1280' height='720' fill='#F3F4F6'/>
+<rect width='1280' height='56' fill='#111827'/>
+<rect y='52' width='1280' height='4' fill='#2A78D6'/>
+<text x='32' y='36' font-family='Segoe UI,sans-serif' font-size='20' font-weight='bold' fill='#FFFFFF' text-anchor='start'>Álbumes</text>
+<text x='1248' y='34' font-family='Segoe UI,sans-serif' font-size='12' font-weight='normal' fill='#9CA3AF' text-anchor='end'>Datos: Spotify · Géneros: Last.fm</text>
+<rect x='24' y='64' width='1232' height='56' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<text x='40' y='98' font-family='Segoe UI,sans-serif' font-size='12' font-weight='bold' fill='#6B7280' text-anchor='start'>Rango de fechas</text>
+<rect x='24' y='132' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='336' y='132' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='648' y='132' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='960' y='132' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='24' y='420' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='336' y='420' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='648' y='420' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<rect x='960' y='420' width='296' height='272' rx='12' fill='#FFFFFF' stroke='#E5E7EB' stroke-width='1'/>
+<text x='24' y='716' font-family='Segoe UI,sans-serif' font-size='11' font-weight='normal' fill='#6B7280' text-anchor='start'>Portadas de Spotify. Orden por reproducciones; en un empate gana el álbum escuchado más recientemente.</text>
+</svg>

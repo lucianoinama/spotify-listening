@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: stg_plays
+    description: One row per play with flattened track fields and local time.
+    columns:
+      - name: played_at
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: duration_ms
+        data_tests: [not_null]
+
+  - name: stg_extended_plays
+    description: >
+      One row per audio stream in the extended history since history_start, with duplicate rows
+      for the same track and second collapsed to the one with the most time played.
+    columns:
+      - name: played_at
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: ms_played
+        data_tests: [not_null]
+
+  - name: stg_tracks
+    description: One row per track, from recently_played, fetched tracks or export names.
+    columns:
+      - name: track_id
+        data_tests: [unique, not_null]
+
+  - name: stg_track_artists
+    description: One row per (track, artist).
+    columns:
+      - name: track_id
+        data_tests: [not_null]
+      - name: artist_id
+        data_tests: [not_null]
+
+  - name: stg_artists
+    description: One row per fetched artist.
+    columns:
+      - name: artist_id
+        data_tests: [unique, not_null]
+
+  - name: stg_artist_genres
+    description: >
+      One row per (artist, genre), from Last.fm tags after filtering. Artists with no
+      qualifying tag have no rows.
+    columns:
+      - name: artist_id
+        data_tests: [not_null]
+      - name: genre
+        data_tests: [not_null]

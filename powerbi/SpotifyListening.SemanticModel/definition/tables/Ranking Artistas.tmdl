@@ -1,0 +1,66 @@
+/// Hours and plays per artist and month, ranked by dbt.
+table 'Ranking Artistas'
+	lineageTag: efbcb35d-49ac-5fe6-8284-6889782a3ae3
+
+	/// First day of the month. Key to Meses.
+	column 'Inicio de mes'
+		dataType: dateTime
+		isHidden
+		formatString: mmm yyyy
+		lineageTag: 19be4819-7c86-5535-a02e-b7df2a639915
+		summarizeBy: none
+		sourceColumn: month_start
+
+	/// Spotify artist id.
+	column 'ID artista'
+		dataType: string
+		isHidden
+		lineageTag: 535bbf54-62bf-5b10-bec3-8ed424f824e8
+		summarizeBy: none
+		sourceColumn: artist_id
+
+	/// Artist name.
+	column Artista
+		dataType: string
+		lineageTag: 0e259acd-9436-5217-bbda-71cf3ab2fbe3
+		summarizeBy: none
+		sourceColumn: artist_name
+
+	/// Plays of any track by the artist in the month.
+	column 'Reproducciones del mes'
+		dataType: int64
+		isHidden
+		formatString: #,0
+		lineageTag: 2d59b4c2-8ced-5064-ba19-e46eaf475aef
+		summarizeBy: none
+		sourceColumn: plays
+
+	/// Estimated hours of any track by the artist in the month.
+	column 'Horas del mes'
+		dataType: double
+		isHidden
+		formatString: #,0.0
+		lineageTag: f41c6428-0659-5d43-bd5f-59c88969606a
+		summarizeBy: none
+		sourceColumn: hours
+
+	/// Rank of the artist by hours within the month.
+	column 'Posición en el mes'
+		dataType: int64
+		formatString: 0
+		lineageTag: 0bab46f3-a894-5423-bb96-89004bf1a201
+		summarizeBy: none
+		sourceColumn: rank_in_month
+
+	partition 'Ranking Artistas' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="mart_top_artists_monthly"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"month_start", "artist_id", "artist_name", "plays", "hours", "rank_in_month"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"month_start", type date}, {"artist_id", type text}, {"artist_name", type text}, {"plays", Int64.Type}, {"hours", type number}, {"rank_in_month", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

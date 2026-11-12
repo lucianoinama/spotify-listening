@@ -1,0 +1,30 @@
+# Secrets and personal data: never commit these
+.env
+secrets/*
+!secrets/.gitkeep
+data/
+*.parquet
+*.duckdb
+endsong*.json
+Streaming_History*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+
+# Power BI files embed a copy of the data
+*.pbix
+*.pbit
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+**/.pbi/editorSettings.json
+powerbi/.claude/settings.local.json

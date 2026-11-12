@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Append-only copies of Spotify API responses, loaded by the ingester.
+    schema: raw
+    tables:
+      - name: recently_played
+        description: One row per play, as returned by GET /me/player/recently-played.
+        loaded_at_field: ingested_at
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 48, period: hour }
+      - name: ingest_runs
+        description: One row per ingestion run (and per backfill pass), with its status.
+      - name: extended_history
+        description: >
+          Rows of Spotify's "Extended streaming history" export, loaded by
+          spotify_ingest.extended. Real ms_played and skip flags, no ids for artists or albums.
+          The ip_addr field is dropped on load.
+      - name: tracks
+        description: >
+          Tracks of the extended history fetched one by one (GET /tracks/{id}), same shape as the
+          track object in recently_played. status 'not_found' marks tracks Spotify no longer serves.
+      - name: artists
+        description: Latest snapshot of each artist, from GET /artists/{id}.
+      - name: artist_tags
+        description: Last.fm artist.getTopTags response per artist, the source of genres.

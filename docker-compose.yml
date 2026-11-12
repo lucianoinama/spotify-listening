@@ -1,0 +1,115 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Polls Spotify on a schedule and appends to the raw schema.
+  # One-time login: see README ("First login").
+  ingest:
+    build: ./ingest
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      SPOTIFY_TOKEN_PATH: /secrets/token.json
+      AUTH_BIND_HOST: 0.0.0.0
+    volumes:
+      - ./secrets:/secrets
+      - ./data:/data:ro # Spotify export files for spotify_ingest.extended; git-ignored
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Fills in covers, release years and artists for the extended history, as Spotify's quota
+  # allows: 400 to 550 tracks per block, then it waits out the block (stored in raw.backfill_state) and resumes.
+  # Idle once nothing is left. Needs the one-time login of `ingest` (shares ./secrets).
+  backfill:
+    build: ./ingest
+    command: ["python", "-m", "spotify_ingest.backfill", "--loop"]
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      SPOTIFY_TOKEN_PATH: /secrets/token.json
+    volumes:
+      - ./secrets:/secrets
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Rebuilds the dbt models after every ingestion run that stored new data.
+  transform:
+    build: ./dbt
+    entrypoint: ["python", "/dbt/build_loop.py"]
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./dbt:/dbt
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # One-shot: creates the read-only database role the app connects with.
+  app-init:
+    build: ./app
+    command: ["python", "-m", "spotify_app.bootstrap"]
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # Streamlit dashboard and chat, http://localhost:8501. Gets no owner credentials.
+  app:
+    build: ./app
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHAT_MODEL: ${CHAT_MODEL:-claude-haiku-5-5}
+      CHAT_EFFORT: ${CHAT_EFFORT:-low}
+      CHAT_MAX_QUESTIONS: ${CHAT_MAX_QUESTIONS:-25}
+      CHAT_SHOW_SQL: ${CHAT_SHOW_SQL:-0}
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - ./app:/app
+    depends_on:
+      app-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # On-demand: docker compose run --rm dbt build
+  dbt:
+    build: ./dbt
+    profiles: ["tools"]
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./dbt:/dbt
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

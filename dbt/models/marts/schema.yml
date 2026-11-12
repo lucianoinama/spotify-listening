@@ -1,0 +1,141 @@
+version: 2
+
+models:
+  - name: dim_artists
+    description: One row per artist. Genres live here, since Spotify assigns them to artists.
+    columns:
+      - name: artist_id
+        data_tests: [unique, not_null]
+      - name: primary_genre
+        description: First genre Spotify lists for the artist, or 'unknown'.
+        data_tests: [not_null]
+
+  - name: dim_tracks
+    description: One row per track.
+    columns:
+      - name: track_id
+        data_tests: [unique, not_null]
+      - name: album_image_url
+        description: URL of the 300 px album cover on Spotify's CDN, from the play payload.
+
+  - name: dim_date
+    description: One row per calendar day, first play to today.
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+
+  - name: bridge_track_artists
+    description: Many-to-many between tracks and artists.
+    columns:
+      - name: track_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tracks')
+                field: track_id
+      - name: artist_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_artists')
+                field: artist_id
+
+  - name: bridge_artist_genres
+    description: Many-to-many between artists and genres.
+    columns:
+      - name: artist_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_artists')
+                field: artist_id
+      - name: genre
+        data_tests: [not_null]
+
+  - name: fct_plays
+    description: >
+      One row per play (a stream of at least min_ms_played). Comes from the extended history up
+      to its last timestamp and from recently_played after that. listened_ms is the real time
+      played where known, else the track length as an estimate.
+    columns:
+      - name: play_id
+        data_tests: [unique, not_null]
+      - name: source
+        description: "'extended' (real ms_played) or 'api' (recently_played, ms_played unknown)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['extended', 'api']
+      - name: ms_played
+        description: Milliseconds actually played. Null for api rows.
+      - name: duration_ms
+        description: Track length. Null only for tracks Spotify no longer serves.
+      - name: listened_ms
+        description: ms_played when known, else duration_ms. Use it for hours.
+      - name: track_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tracks')
+                field: track_id
+      - name: play_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+  - name: fct_stream_events
+    description: >
+      Every stream in the extended history, including those too short to count as a play.
+      For skip analysis. Ends where the export ends; it has no api rows.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: is_counted
+        description: True when the stream lasted at least min_ms_played, so it is in fct_plays.
+
+  - name: ingest_status
+    description: >
+      One live row with the health of the recently_played ingestion: when it last worked and how
+      many runs failed since. The app shows it as "Última sincronización".
+    columns:
+      - name: last_ok_at
+        description: When the last successful ingestion run finished. Null if none ever did.
+      - name: failures_since_ok
+        data_tests: [not_null]
+
+  - name: mart_daily_listening
+    description: Plays and hours per day (listened_ms).
+    columns:
+      - name: play_date
+        data_tests: [unique, not_null]
+
+  - name: mart_top_artists_monthly
+    description: Artist ranking per month.
+    columns:
+      - name: month_start
+        data_tests: [not_null]
+      - name: artist_id
+        data_tests: [not_null]
+
+  - name: mart_genre_monthly
+    description: Genre ranking per month.
+    columns:
+      - name: month_start
+        data_tests: [not_null]
+      - name: genre
+        data_tests: [not_null]
+
+  - name: mart_hourly_heatmap
+    description: Plays and hours by day of week and hour of day.
+    columns:
+      - name: play_hour
+        data_tests: [not_null]

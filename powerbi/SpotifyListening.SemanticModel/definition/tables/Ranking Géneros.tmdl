@@ -1,0 +1,58 @@
+/// Hours and plays per genre and month, ranked by dbt.
+table 'Ranking Géneros'
+	lineageTag: 59158128-72cc-5688-8dbb-c8e35b441c64
+
+	/// First day of the month. Key to Meses.
+	column 'Inicio de mes'
+		dataType: dateTime
+		isHidden
+		formatString: mmm yyyy
+		lineageTag: ad807c77-b789-548e-bdcb-f674e54604e8
+		summarizeBy: none
+		sourceColumn: month_start
+
+	/// Genre, a Last.fm tag after filtering.
+	column 'Género'
+		dataType: string
+		lineageTag: 6d5824b5-660a-55b8-8c34-91db5a15da6d
+		summarizeBy: none
+		sourceColumn: genre
+
+	/// Plays of tracks whose artists carry the genre.
+	column 'Reproducciones del mes'
+		dataType: int64
+		isHidden
+		formatString: #,0
+		lineageTag: 041175f2-2d21-5b1c-9655-cacf3b8b5cfb
+		summarizeBy: none
+		sourceColumn: plays
+
+	/// Estimated hours of tracks whose artists carry the genre.
+	column 'Horas del mes'
+		dataType: double
+		isHidden
+		formatString: #,0.0
+		lineageTag: d8ac1f63-edec-5173-acb2-860574706859
+		summarizeBy: none
+		sourceColumn: hours
+
+	/// Rank of the genre by hours within the month.
+	column 'Posición en el mes'
+		dataType: int64
+		formatString: 0
+		lineageTag: 5ad275e2-4fcc-592f-815b-ff5277e826dc
+		summarizeBy: none
+		sourceColumn: rank_in_month
+
+	partition 'Ranking Géneros' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="mart_genre_monthly"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"month_start", "genre", "plays", "hours", "rank_in_month"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"month_start", type date}, {"genre", type text}, {"plays", Int64.Type}, {"hours", type number}, {"rank_in_month", Int64.Type}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

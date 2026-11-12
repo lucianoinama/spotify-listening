@@ -1,0 +1,91 @@
+/// One row per track. Only the main artist is kept.
+table Canciones
+	lineageTag: 515d24c6-eb55-5a40-88c4-576eab1dc3e3
+
+	/// Spotify track id.
+	column 'ID canción'
+		dataType: string
+		isHidden
+		lineageTag: dc4c0aa7-94da-5d28-a7b6-fb0e84757830
+		summarizeBy: none
+		sourceColumn: track_id
+
+	/// Track title.
+	column 'Canción'
+		dataType: string
+		lineageTag: f47e0eeb-d78e-5c56-b636-62dfd5d4caac
+		summarizeBy: none
+		sourceColumn: track_name
+
+	/// True when Spotify flags the track as explicit.
+	column 'Es explícita'
+		dataType: boolean
+		isHidden
+		lineageTag: 94cdba50-5559-5e36-b106-7c920361be58
+		summarizeBy: none
+		sourceColumn: is_explicit
+
+	/// Album title.
+	column 'Álbum'
+		dataType: string
+		lineageTag: f7e15867-5cfb-5d40-a8c5-d4fa806b4670
+		summarizeBy: none
+		sourceColumn: album_name
+
+	/// URL of the 300 px album cover on Spotify's CDN. Used by the Álbumes page.
+	column Portada
+		dataType: string
+		isHidden
+		dataCategory: ImageUrl
+		lineageTag: df6b75c1-ac77-5617-a882-b9a7d5ddd56b
+		summarizeBy: none
+		sourceColumn: album_image_url
+
+	/// Release year of the album.
+	column 'Año de lanzamiento'
+		dataType: int64
+		formatString: 0
+		lineageTag: 1c813958-e651-52f3-a50f-0797d8413523
+		summarizeBy: none
+		sourceColumn: release_year
+
+	/// First artist listed for the track.
+	column 'Artista principal'
+		dataType: string
+		lineageTag: 6d6ff003-0c73-528f-9fbf-5085c59d9320
+		summarizeBy: none
+		sourceColumn: main_artist_name
+
+	/// Explicit flag as a label.
+	column Contenido = IF(Canciones[Es explícita], "Explícita", "Sin marcar")
+		dataType: string
+		lineageTag: 6820b0e4-13fd-563c-908b-55f0a4ab193d
+		summarizeBy: none
+
+	/// Sort key for Década.
+	column 'Década orden' = IF(ISBLANK(Canciones[Año de lanzamiento]), 0, INT(Canciones[Año de lanzamiento] / 10) * 10)
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 296e4566-d91a-5523-8a3f-9a3a33d79342
+		summarizeBy: none
+
+	/// Release decade of the album.
+	column 'Década' = IF(Canciones[Década orden] = 0, "Sin dato", FORMAT(Canciones[Década orden], "0") & "s")
+		dataType: string
+		lineageTag: 3040e9e3-b51e-5a27-993c-0374a89fc536
+		sortByColumn: 'Década orden'
+		summarizeBy: none
+
+	partition Canciones = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="dim_tracks"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"track_id", "track_name", "is_explicit", "album_name", "album_image_url", "release_year", "main_artist_name"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"track_id", type text}, {"track_name", type text}, {"is_explicit", type logical}, {"album_name", type text}, {"album_image_url", type text}, {"release_year", Int64.Type}, {"main_artist_name", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

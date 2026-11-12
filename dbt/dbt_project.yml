@@ -1,0 +1,32 @@
+name: spotify_listening
+version: "1.0.0"
+config-version: 2
+profile: spotify_listening
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+vars:
+  local_timezone: "{{ env_var('LOCAL_TIMEZONE', 'America/Argentina/Buenos_Aires') }}"
+  # Last.fm tags are user-made and noisy: keep tags at least this popular (0-100), at most N.
+  genre_min_tag_count: 20
+  genre_max_per_artist: 5
+  # Extended streaming history: where the history starts, what counts as a play (Spotify counts
+  # a stream from 30 s), and whether plays made in a private session are kept.
+  history_start: "2020-01-01"
+  min_ms_played: 30000
+  include_private_sessions: false
+
+seeds:
+  spotify_listening:
+    +schema: staging
+
+models:
+  spotify_listening:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts

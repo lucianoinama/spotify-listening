@@ -1,0 +1,6 @@
+streamlit~=1.67
+plotly~=7.1
+pandas~=3.1
+psycopg[binary]~=3.3
+anthropic~=1.17
+sqlglot~=30.30

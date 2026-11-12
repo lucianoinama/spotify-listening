@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ingest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest
+
+  dbt:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: spotify
+          POSTGRES_USER: spotify
+          POSTGRES_PASSWORD: ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spotify -d spotify"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: spotify
+      POSTGRES_USER: spotify
+      POSTGRES_PASSWORD: ci_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r ingest/requirements.txt "dbt-core~=1.11.0" "dbt-postgres~=1.11.0"
+      # Create the empty raw tables, then build and test every model against them.
+      - run: python -m spotify_ingest.db
+        working-directory: ingest
+      - run: dbt build
+        working-directory: dbt
+        env:
+          DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+      # The Streamlit app's read-only role must be creatable against the built marts schema.
+      - run: pip install "psycopg[binary]"
+      - run: python -m spotify_app.bootstrap
+        working-directory: app
+        env:
+          APP_DB_PASSWORD: ci_app_password

@@ -1,0 +1,15 @@
+relationship 1bdb5cde-407c-53f4-9f90-948e4db7d0b8
+	fromColumn: Reproducciones.'ID canción'
+	toColumn: Canciones.'ID canción'
+
+relationship fe48e319-fa80-56c9-b1b8-2c78376cb415
+	fromColumn: Reproducciones.Fecha
+	toColumn: Calendario.Fecha
+
+relationship 7c85448e-5672-532a-b54b-92a66ed09b5c
+	fromColumn: 'Ranking Artistas'.'Inicio de mes'
+	toColumn: Meses.Mes
+
+relationship 9575252d-af75-58ba-8b94-87d786578a59
+	fromColumn: 'Ranking Géneros'.'Inicio de mes'
+	toColumn: Meses.Mes

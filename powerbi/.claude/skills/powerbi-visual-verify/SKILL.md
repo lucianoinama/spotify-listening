@@ -1,0 +1,180 @@
+---
+name: powerbi-visual-verify
+description: 'Reviews rendered Power BI page screenshots captured through the Desktop Bridge and decides what to fix in the PBIR/TMDL source. Use when verifying that a report actually renders correctly after edits, when screenshots have been captured to tests/screenshots/, or when the Stop hook blocks a turn with a visual verification report. Triggers on queries about visual verification, screenshot review, "does the report render correctly", overlapping visuals, truncated labels, blank visuals, stale theme colors, and the edit-validate-reload-screenshot loop.'
+---
+
+# Power BI Visual Verification
+
+Reviews what Power BI Desktop **actually rendered**, not what the JSON claims. Valid PBIR routinely renders wrong: a chart sits on top of its SVG card title, labels truncate, a visual comes back blank, theme colors are stale.
+
+## Repository Final Boss Alignment
+
+For this repository, `copilot-instructions.md` is the final authority. Every check below traces back to a numbered rule in its **General Dashboard Formatting Rules** section; where this file and `copilot-instructions.md` disagree, `copilot-instructions.md` wins.
+
+---
+
+## The loop
+
+```
+edit PBIR/TMDL -> validate -> reload -> screenshot-all -> review PNGs -> fix -> repeat
+```
+
+Automated by the `Stop` hook in `.claude/settings.json`, which runs `scripts/Invoke-PbipVerify.ps1`. You normally arrive here because that hook blocked the turn and handed you screenshot paths.
+
+**Fix budget is one round.** Round 1 you review and fix. Round 2 you review the confirmation screenshots and **report only — no further edits**. Say plainly what is still wrong rather than starting another fix cycle.
+
+### Running it by hand
+
+```powershell
+powershell -NoProfile -File scripts\Test-PbipBridge.ps1              # preflight
+powershell -NoProfile -File scripts\Invoke-PbipVerify.ps1 -Mode Review
+```
+
+---
+
+## How to review
+
+1. **Read every screenshot with the Read tool.** All of them, every round. A page you skip is a page you did not verify — never infer a page's state from another page or from the JSON.
+2. Work the checklist below per page.
+3. Fix the **PBIR/TMDL source**, never the PNG.
+4. Report findings by **page display name**, not page id — the id means nothing to the user.
+
+Screenshots include the right-hand filter pane (`outspacePane`). Its presence is normal and not a defect.
+
+---
+
+## Checklist
+
+### A. Layout & overlap
+
+- [ ] **Visual does not overlap its SVG card title.** `card_with_title()` draws the label at `card_y + 24`, so a visual's `y` must be at least `card_y + 30`. *This is the highest-value check in the whole file: it is pure geometry, invisible to JSON validation, and the single most common rendering defect in this template.* (rule 16)
+- [ ] No visual is clipped by the page edge or unintentionally overlapping another.
+- [ ] Category labels, legends, and data labels are fully legible — not truncated, not rotated to illegibility, no ellipses.
+- [ ] Card and KPI values show in full (no `…`).
+- [ ] Textboxes have no scrollbars; slicers render their full control.
+- [ ] Spacing reads as deliberate; visuals align to the SVG background's card grid.
+- [ ] X-axis title width above 40% where the chart needs the room. (rule 15)
+
+### B. Data rendering
+
+- [ ] Charts contain actual marks — bars, lines, points. An empty plot area is a failure even when the JSON is valid.
+- [ ] Tables and matrices have data rows.
+- [ ] No error banners, no "Can't display this visual", no missing-field warnings.
+- [ ] Blanks and nulls are explainable, not accidental.
+- [ ] Slicers list selectable values.
+- [ ] Where the SVG label promises a Top N, the visual is actually filtered to that N. (rule 14)
+
+### C. Numbers & labels
+
+- [ ] No decimal points anywhere — whole numbers only. (rule 1)
+- [ ] Thousand separators on every measure and visual. (rule 2)
+- [ ] Data labels **on** for all charts: 0 decimals, comma-separated, full numbers — never K/M abbreviations. (rule 4)
+- [ ] Clean names — no "Sum of", no underscores in tooltips or column headers. (rule 3)
+- [ ] Sorted descending by value unless the visual is a time series. (rule 5)
+- [ ] Month visuals run Jan→Dec by month number, displayed as MMM. (rule 6)
+
+### D. Chrome & theming
+
+- [ ] **No visual container title** — titles come from the SVG background canvas. A visible Power BI title means duplicated text. (rule 10)
+- [ ] No visual background. (rule 7)
+- [ ] No visual border. (rule 8)
+- [ ] No drop shadow. (rule 9)
+- [ ] No axis titles on either axis. (rule 11)
+- [ ] Value axis hidden — only data labels carry the numbers. (rule 12)
+- [ ] Category axis visible. (rule 13)
+- [ ] Theme colors, fonts, and page background match design intent; series are distinguishable and contrast adequately against the background.
+
+---
+
+## Known caveats
+
+These produce screenshots that lie. Check them before concluding a fix failed.
+
+**First open of a freshly generated report.** On the first dashboard the agent builds, Power BI Desktop often fails to load the PBIP cleanly and raises an error dialog - sometimes one offering *continue with errors*. Two symptoms, one cause:
+
+- The window title stays **Untitled** and `powerbi-desktop status` lists the pid with no `currentFilePath`. The project never opened, so the scripts correctly report *"No running Power BI Desktop instance has ... open"*. That message means a load error, not a broken bridge.
+- A modal dialog is up. **The bridge cannot work behind a modal** - every reload and screenshot hangs or fails until it is dismissed.
+
+*Continue with errors* is not a fix. Desktop opens the report with the failing visuals or model objects dropped, so the screenshots show a report that does not exist in source.
+
+**The bridge cannot see that dialog** - during a failed load there is no report to serve the API. Two things cover it. First, find the cause in the source:
+
+```powershell
+powershell -NoProfile -File scripts\Test-PbipSemantics.ps1
+```
+
+That checks for exactly this class of error: a measure colliding with a column name, duplicate measure names, relationship endpoints that do not exist, unresolved `'Table'[Column]` references, resource items referenced but not registered in `report.json`, duplicate page ids.
+
+Second, when it comes back clean - a TMDL grammar fault, say - read the dialog itself:
+
+```powershell
+powershell -NoProfile -File scripts\Get-PbipLoadError.ps1
+```
+
+It returns the on-screen text, the full diagnostic behind **Copy details to clipboard** (which names the offending file and line number), and a cropped PNG of the dialog. The verify loop runs this automatically on `load_failed`, so a blocked turn usually already carries the message.
+
+After a fix the loop reopens and retries on its own — capture, dismiss, close the spent instance, reopen. The order is what makes it safe: `powerbi-desktop open` starts a *new* instance rather than reusing the running one, so the failed window has to be gone first. If the reopen fails, the instance count returns to where it started, and only an instance the loop started, or one that was showing a load-error dialog, is ever closed.
+
+The verify loop now waits up to **30 seconds** after an open before giving up, and says which of four things happened rather than reporting one undifferentiated skip:
+
+| Status | Meaning |
+| --- | --- |
+| `loaded` | Instance found; verification proceeds |
+| `not_running` | Desktop is closed. Skip. |
+| `no_bridge` | Desktop up, preview flag off. Skip. |
+| `other_project` | Desktop has a *different* project open - it names which. Skip. |
+| `load_failed` | Desktop up, bridge up, project still not loaded: a rejected definition. **Blocks the turn** - this is a defect, not an outage. |
+
+Usual first-build causes:
+
+- a visual references a measure that is not in the TMDL, or one that lives in a different home table
+- a page background or theme names a resource item that is not registered in `report.json`
+- a `visual.json` property does not match the schema version declared at the top of that file
+- files written UTF-8 **with** BOM, or a stray trailing comma in JSON
+- duplicate page or visual ids in `pages.json`
+
+Recovery:
+
+```powershell
+powershell -NoProfile -File scripts\Test-PbipBridge.ps1   # expect: no instance has this project open
+# dismiss the dialog, close the Untitled window, fix the PBIR/TMDL, then:
+powerbi-desktop open "<project>.pbip"
+powerbi-desktop status                                    # currentFilePath must show the project
+```
+
+Only run the verify loop once `status` reports the project path.
+
+**Reload-time dialog: "Your report has issues that could not be resolved".** A PBIR schema fault, most often a malformed expression in `filterConfig`. Measured facts that matter when you review:
+
+- `powerbi-desktop reload` returns `"success": true` even when this dialog appears, which is why the loop watches the window for a modal rather than trusting the exit code.
+- The list is noise around one defect. A single unrecognised expression key yields one *"Required property"* line per expression kind the schema accepts - 49 lines - plus one *"An additional property 'X' was included"* line naming the actual key. The loop reports the collapsed root cause.
+- **Continue silently drops whatever failed validation.** A broken visual filter simply stops filtering; the page renders and looks normal. Screenshots from a `loaded_with_issues` round are marked **UNTRUSTED** - use them only to see what went missing, never to judge the page correct.
+- Continue writes nothing to disk, but the instance is closed afterwards so the degraded report can't be edited and saved over the source.
+
+To catch it earlier: `Test-PbipSemantics.ps1` checks filter expressions locally and names the intended key. `powerbi-report-author validate --no-schema` reports success on this class.
+
+**Theme cache.** Power BI Desktop caches theme JSON. After editing a theme in `StaticResources/RegisteredResources/`, a reload shows **stale colors**. Rename the theme file with a new suffix and update its `report.json` registration, or close and reopen Desktop. The verify script warns when it sees a recently modified theme file.
+
+**Semantic model / TMDL.** `file.reload/v1` takes `reloadModelDefinition` (default `true`), so measure changes usually do apply. When a visual still shows stale or missing measure values, reopen rather than reload:
+
+```powershell
+powerbi-desktop open "<project>.pbip"
+```
+
+This matters here because the build scripts rewrite `_SVG_Measures.tmdl` on nearly every run.
+
+**One operation at a time.** The bridge runs a single operation per instance. Never issue a reload and a screenshot concurrently against the same PID — the documented result is a `Cancelled` error. `Invoke-PbipVerify.ps1` already serializes them.
+
+**Right instance.** An idle *Untitled* Desktop window reports `connected` but fails every operation with `REPORT_DIR_REQUIRED`. The scripts select the PID whose `currentFilePath` matches this project.
+
+**Preview API.** Both CLIs are public preview. After a Power BI Desktop update, re-check the method surface:
+
+```powershell
+powerbi-desktop manifest --pid <pid>
+```
+
+---
+
+## When verification is skipped
+
+If the hook reports that verification was skipped (Desktop closed, bridge down, CLI missing), the loop **fails open by design** — a hook that blocked on a broken bridge would make the session impossible to end. Tell the user the report was not visually verified and why. Do not claim a page renders correctly on the strength of JSON validation alone.

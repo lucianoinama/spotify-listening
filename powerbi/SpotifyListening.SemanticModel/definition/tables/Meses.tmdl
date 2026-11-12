@@ -1,0 +1,17 @@
+/// One row per month. Lets a single slicer filter both monthly rankings.
+table Meses
+	lineageTag: 584d9496-e234-5bbd-9d82-6ff89b8b7b29
+
+	column Mes
+		formatString: mmmm yyyy
+		lineageTag: 246613f6-0b11-5ccd-8815-1c89fecf56b2
+		summarizeBy: none
+		sourceColumn: [Mes]
+
+	partition Meses = calculated
+		mode: import
+		source = ```
+				DISTINCT(SELECTCOLUMNS(Calendario, "Mes", Calendario[Inicio de mes]))
+				```
+
+	annotation PBI_Id = e46d9975-cf17-58e6-b70a-cb4648cd787e

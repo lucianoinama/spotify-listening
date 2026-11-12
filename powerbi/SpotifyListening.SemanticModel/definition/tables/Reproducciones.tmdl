@@ -1,0 +1,94 @@
+/// One row per play, with the local day and hour computed by dbt.
+table Reproducciones
+	lineageTag: 3083af28-5cd1-5a77-a084-ecbfa0a5c52d
+
+	/// Unique id of the play: a hash of the play time and the track.
+	column 'ID reproducción'
+		dataType: string
+		isHidden
+		lineageTag: 9aeb7cb8-ab73-524f-baef-daa7da75baec
+		summarizeBy: none
+		sourceColumn: play_id
+
+	/// When the play happened, in local time.
+	column 'Fecha y hora'
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		lineageTag: 17f27bdd-4b2b-5733-9d96-8834d570d9fb
+		summarizeBy: none
+		sourceColumn: played_at_local
+
+	/// Local day of the play. Key to Calendario.
+	column Fecha
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy
+		lineageTag: 48f8c67b-d7fe-5b8d-81cb-4eac47d114c1
+		summarizeBy: none
+		sourceColumn: play_date
+
+	/// Hour of the day, 0 to 23, in local time.
+	column Hora
+		dataType: int64
+		formatString: 0
+		lineageTag: 8626a94a-e024-5f8e-b590-29bf76a48af0
+		summarizeBy: none
+		sourceColumn: play_hour
+
+	/// Spotify track id. Key to Canciones.
+	column 'ID canción'
+		dataType: string
+		isHidden
+		lineageTag: 2ba858af-35b1-5c95-9f4b-5b51b19322c0
+		summarizeBy: none
+		sourceColumn: track_id
+
+	/// Milliseconds actually played where the extended history has them, else the track length as an estimate (plays after the export ends).
+	column 'Tiempo escuchado en ms'
+		dataType: int64
+		isHidden
+		lineageTag: 31018f94-fe8f-57d6-b53e-bbce591c4915
+		summarizeBy: none
+		sourceColumn: listened_ms
+
+	/// Where the play started, as Spotify reports it: playlist, album, artist.
+	column 'Origen original'
+		dataType: string
+		isHidden
+		lineageTag: 77051f51-6122-5aab-8bf6-51d0aa784126
+		summarizeBy: none
+		sourceColumn: context_type
+
+	/// Where the play started, in Spanish.
+	column Origen = IF(ISBLANK(Reproducciones[Origen original]), "Sin dato", SWITCH(Reproducciones[Origen original], "playlist", "Playlist", "album", "Álbum", "artist", "Artista", "collection", "Biblioteca", "show", "Podcast", "Otro"))
+		dataType: string
+		lineageTag: 318c563c-5bbb-5f94-9ecb-c22fa6e9ca40
+		summarizeBy: none
+
+	/// Sort key for Franja horaria.
+	column 'Franja orden' = SWITCH(TRUE(), Reproducciones[Hora] < 6, 1, Reproducciones[Hora] < 12, 2, Reproducciones[Hora] < 19, 3, 4)
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 369beaaf-af08-566d-8f73-65506f15a1d7
+		summarizeBy: none
+
+	/// Time of day: early morning to 5, morning to 11, afternoon to 18, night.
+	column 'Franja horaria' = SWITCH(TRUE(), Reproducciones[Hora] < 6, "Madrugada", Reproducciones[Hora] < 12, "Mañana", Reproducciones[Hora] < 19, "Tarde", "Noche")
+		dataType: string
+		lineageTag: e314bc82-6f65-5b7a-84a5-81f07b710877
+		sortByColumn: 'Franja orden'
+		summarizeBy: none
+
+	partition Reproducciones = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="fct_plays"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"play_id", "played_at_local", "play_date", "play_hour", "track_id", "listened_ms", "context_type"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"play_id", type text}, {"played_at_local", type datetime}, {"play_date", type date}, {"play_hour", Int64.Type}, {"track_id", type text}, {"listened_ms", Int64.Type}, {"context_type", type text}})
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

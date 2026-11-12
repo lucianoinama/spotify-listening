@@ -1,0 +1,61 @@
+{
+  "name": "SpotifyListeningTheme",
+  "dataColors": [
+    "#2A78D6",
+    "#9AA3AE",
+    "#EB6834",
+    "#1BAF7A",
+    "#EDA100",
+    "#6250D6",
+    "#E87BA4",
+    "#E34948"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#111827",
+  "tableAccent": "#2A78D6",
+  "maximum": "#2A78D6",
+  "minimum": "#D6E6F8",
+  "null": "#9AA3AE",
+  "textClasses": {
+    "label": {
+      "color": "#6B7280",
+      "fontSize": 10,
+      "fontFace": "Segoe UI"
+    },
+    "callout": {
+      "color": "#111827",
+      "fontSize": 28,
+      "fontFace": "Segoe UI",
+      "fontWeight": "bold"
+    },
+    "title": {
+      "color": "#111827",
+      "fontSize": 13,
+      "fontFace": "Segoe UI",
+      "fontWeight": "bold"
+    },
+    "header": {
+      "color": "#111827",
+      "fontSize": 11,
+      "fontFace": "Segoe UI",
+      "fontWeight": "semibold"
+    },
+    "largeTitle": {
+      "color": "#111827",
+      "fontSize": 16,
+      "fontFace": "Segoe UI",
+      "fontWeight": "bold"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "fontFamily": [
+          {
+            "value": "Segoe UI"
+          }
+        ]
+      }
+    }
+  }
+}

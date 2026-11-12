@@ -1,0 +1,54 @@
+/// One row per artist. Genres come from Last.fm tags, not from Spotify.
+table Artistas
+	lineageTag: 33eb9b68-8bfb-5ccb-9a2d-dd5e75b5885e
+
+	/// Spotify artist id.
+	column 'ID artista'
+		dataType: string
+		isHidden
+		lineageTag: 4c13e65a-ef55-5f49-ac84-797799fe76fa
+		summarizeBy: none
+		sourceColumn: artist_id
+
+	/// Artist name.
+	column Artista
+		dataType: string
+		lineageTag: 9f469954-e45a-5014-b49f-c3a2a19d754b
+		summarizeBy: none
+		sourceColumn: artist_name
+
+	/// Most popular Last.fm tag kept as a genre, or Sin género.
+	column 'Género principal'
+		dataType: string
+		lineageTag: fc572547-7e0b-5c1a-8204-1e7c7e16a822
+		summarizeBy: none
+		sourceColumn: primary_genre
+
+	/// All genres kept for the artist, in order.
+	column 'Géneros'
+		dataType: string
+		lineageTag: 1dd8b559-2239-524f-bcb3-641a77f0d715
+		summarizeBy: none
+		sourceColumn: genres
+
+	/// How many genres were kept.
+	column 'Cantidad de géneros'
+		dataType: int64
+		formatString: 0
+		lineageTag: 60069f4d-c120-5c93-9f41-9911c062e474
+		summarizeBy: none
+		sourceColumn: genre_count
+
+	partition Artistas = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:5432", "spotify", [CreateNavigationProperties=false]),
+				    Data = Source{[Schema="marts", Item="dim_artists"]}[Data],
+				    Selected = Table.SelectColumns(Data, {"artist_id", "artist_name", "primary_genre", "genres", "genre_count"}),
+				    Typed = Table.TransformColumnTypes(Selected, {{"artist_id", type text}, {"artist_name", type text}, {"primary_genre", type text}, {"genres", type text}, {"genre_count", Int64.Type}}),
+				    Replaced0 = Table.ReplaceValue(Typed, "unknown", "Sin género", Replacer.ReplaceText, {"primary_genre"})
+				in
+				    Replaced0
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,283 @@
+/// SVG KPI cards, named by page: P1_, P2_.
+table _SVG_Measures
+	lineageTag: eac9aff8-05bc-57d4-9dab-31c8bb387bbc
+
+	/// Overview KPI card: hours listened.
+	measure P1_Horas_KPI_SVG =
+			VAR _Txt = IF(ISBLANK([Horas escuchadas]), "0,0", FORMAT([Horas escuchadas], "#,0.0", "es-AR"))
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='196' height='58' viewBox='0 0 196 58' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='196' height='58' fill='transparent'/>" &
+			"<text x='4' y='31' font-family='Segoe UI,sans-serif' font-size='30' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='51' font-family='Segoe UI,sans-serif' font-size='12' fill='rgb(107,114,128)'>horas escuchadas</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: 4ed9b2b0-bd49-5324-b773-3d014e04c1cb
+
+	/// Overview KPI card: number of plays.
+	measure P1_Reproducciones_KPI_SVG =
+			VAR _Txt = FORMAT([Total de reproducciones], "#,0", "es-AR")
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='196' height='58' viewBox='0 0 196 58' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='196' height='58' fill='transparent'/>" &
+			"<text x='4' y='31' font-family='Segoe UI,sans-serif' font-size='30' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='51' font-family='Segoe UI,sans-serif' font-size='12' fill='rgb(107,114,128)'>reproducciones</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: 3321e089-1022-58c7-ab6c-439c0a172f13
+
+	/// Overview KPI card: distinct tracks.
+	measure P1_Canciones_KPI_SVG =
+			VAR _Txt = FORMAT([Canciones únicas], "#,0", "es-AR")
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='196' height='58' viewBox='0 0 196 58' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='196' height='58' fill='transparent'/>" &
+			"<text x='4' y='31' font-family='Segoe UI,sans-serif' font-size='30' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='51' font-family='Segoe UI,sans-serif' font-size='12' fill='rgb(107,114,128)'>canciones distintas</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: b579706a-1854-596f-8955-a165a86d2677
+
+	/// Overview KPI card: hours per active day.
+	measure P1_HorasDia_KPI_SVG =
+			VAR _Txt = IF(ISBLANK([Horas por día activo]), "0,0", FORMAT([Horas por día activo], "#,0.0", "es-AR"))
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='196' height='58' viewBox='0 0 196 58' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='196' height='58' fill='transparent'/>" &
+			"<text x='4' y='31' font-family='Segoe UI,sans-serif' font-size='30' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='51' font-family='Segoe UI,sans-serif' font-size='12' fill='rgb(107,114,128)'>por día con actividad</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: 34837252-69ef-5b4e-9863-dd304d79f773
+
+	/// Rhythm KPI card: peak hour of the day.
+	measure P2_HoraPico_KPI_SVG =
+			VAR _Txt = IF([Hora pico] = "", "-", SUBSTITUTE([Hora pico], ", ", " y ") & " h")
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='344' height='108' viewBox='0 0 344 108' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='344' height='108' fill='transparent'/>" &
+			"<text x='4' y='62' font-family='Segoe UI,sans-serif' font-size='46' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='94' font-family='Segoe UI,sans-serif' font-size='14' fill='rgb(107,114,128)'>hora con más reproducciones</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: 248b1f86-2928-5a13-957a-b970e3f0c5eb
+
+	/// Rhythm KPI card: weekday with the most hours.
+	measure P2_DiaActivo_KPI_SVG =
+			VAR _Txt = IF([Día más activo] = "", "-", SUBSTITUTE([Día más activo], ", ", " y "))
+			RETURN
+			"data:image/svg+xml;utf8," &
+			"<svg width='344' height='108' viewBox='0 0 344 108' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='344' height='108' fill='transparent'/>" &
+			"<text x='4' y='62' font-family='Segoe UI,sans-serif' font-size='46' font-weight='bold' fill='rgb(17,24,39)'>" & _Txt & "</text>" &
+			"<text x='4' y='94' font-family='Segoe UI,sans-serif' font-size='14' fill='rgb(107,114,128)'>día con más horas</text>" &
+			"</svg>"
+		dataCategory: ImageUrl
+		lineageTag: 080a24cd-b88a-50af-9d2f-f3134cd10f56
+
+	/// Overview caption for the top album of the last 30 days: name, artist and plays.
+	measure P1_AlbumTop30_Caption_SVG =
+			VAR _u = [Portada álbum top 30 días]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Reproducciones 30 días], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("" & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 3544da12-8f69-54b6-9a93-7a84c678a052
+
+	/// Álbumes page caption for the album ranked 1: name, artist and plays.
+	measure P5_Album1_Caption_SVG =
+			VAR _u = [Portada #1]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("1. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 714fdda6-7848-5bf9-a793-fc21ae8caaef
+
+	/// Álbumes page caption for the album ranked 2: name, artist and plays.
+	measure P5_Album2_Caption_SVG =
+			VAR _u = [Portada #2]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("2. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 07a7b446-683a-58da-b9f2-45768a8f8875
+
+	/// Álbumes page caption for the album ranked 3: name, artist and plays.
+	measure P5_Album3_Caption_SVG =
+			VAR _u = [Portada #3]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("3. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 93922433-6993-5683-886c-c8d5d8f188d5
+
+	/// Álbumes page caption for the album ranked 4: name, artist and plays.
+	measure P5_Album4_Caption_SVG =
+			VAR _u = [Portada #4]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("4. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 38e4fedf-b63d-57ea-ac6a-282b0ad0dc79
+
+	/// Álbumes page caption for the album ranked 5: name, artist and plays.
+	measure P5_Album5_Caption_SVG =
+			VAR _u = [Portada #5]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("5. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 886932cd-d8d8-5846-b8a0-91b8d12cc8f5
+
+	/// Álbumes page caption for the album ranked 6: name, artist and plays.
+	measure P5_Album6_Caption_SVG =
+			VAR _u = [Portada #6]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("6. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: cbf34874-c3eb-5f96-b54a-2d75f670197e
+
+	/// Álbumes page caption for the album ranked 7: name, artist and plays.
+	measure P5_Album7_Caption_SVG =
+			VAR _u = [Portada #7]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("7. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: 14a85ddf-026b-5b46-99dd-2fe6f2225715
+
+	/// Álbumes page caption for the album ranked 8: name, artist and plays.
+	measure P5_Album8_Caption_SVG =
+			VAR _u = [Portada #8]
+			VAR _name = CALCULATE(MAX(Canciones[Álbum]), Canciones[Portada] = _u)
+			VAR _artist = CALCULATE(MAX(Canciones[Artista principal]), Canciones[Portada] = _u)
+			VAR _plays = CALCULATE([Total de reproducciones], Canciones[Portada] = _u)
+			VAR _short = IF(LEN(_name) > 30, LEFT(_name, 29) & "…", _name)
+			VAR _line1 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE("8. " & _short, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			VAR _unit = IF(_plays = 1, " reproducción", " reproducciones")
+			VAR _line2 = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(_artist & " · " & _plays & _unit, "%", "%25"), "#", "%23"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+			RETURN
+			IF(ISBLANK(_u), BLANK(),
+			"data:image/svg+xml;utf8," &
+			"<svg width='288' height='50' viewBox='0 0 288 50' xmlns='http://www.w3.org/2000/svg'>" &
+			"<rect width='288' height='50' fill='transparent'/>" &
+			"<text x='144' y='18' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='13' font-weight='bold' fill='rgb(17,24,39)'>" & _line1 & "</text>" &
+			"<text x='144' y='38' text-anchor='middle' font-family='Segoe UI,sans-serif' font-size='11' fill='rgb(107,114,128)'>" & _line2 & "</text>" &
+			"</svg>")
+		dataCategory: ImageUrl
+		lineageTag: eedc5654-f82c-556a-b483-ded34f6ee13e
+
+	column Value
+		isHidden
+		formatString: 0
+		lineageTag: 1c370ec4-5f4e-5994-b08e-51b77c01f979
+		summarizeBy: sum
+		sourceColumn: [Value]
+
+	partition _SVG_Measures = calculated
+		mode: import
+		source = {BLANK()}
+
+	annotation PBI_Id = 8c9707b7-ea36-5eeb-9002-32eb546b1cdd
